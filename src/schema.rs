@@ -3,13 +3,13 @@ table! {
         article_id -> Int4,
         user_id -> Int4,
         title -> Text,
-        path -> Text,
-        view_count -> Int4,
-        comment_count -> Int4,
-        like_count -> Int4,
-        date -> Timestamptz,
-        intro -> Nullable<Text>,
-        content_html -> Nullable<Text>,
+        path -> Nullable<Text>,
+        view_count -> Nullable<Int4>,
+        comment_count -> Nullable<Int4>,
+        like_count -> Nullable<Int4>,
+        date -> Nullable<Timestamptz>,
+        intro -> Text,
+        content_html -> Text,
     }
 }
 
@@ -30,6 +30,14 @@ table! {
 }
 
 table! {
+    article_like (id) {
+        id -> Int4,
+        user_id -> Nullable<Int4>,
+        article_id -> Nullable<Int4>,
+    }
+}
+
+table! {
     category (category_id) {
         category_id -> Int4,
         name -> Nullable<Text>,
@@ -45,9 +53,18 @@ table! {
         user_id -> Int4,
         article_id -> Int4,
         content -> Nullable<Text>,
-        comment_count -> Nullable<Int4>,
-        like_count -> Nullable<Int4>,
         date -> Timestamptz,
+    }
+}
+
+table! {
+    hot_category (hot_id) {
+        category_id -> Nullable<Int4>,
+        name -> Nullable<Text>,
+        description -> Nullable<Text>,
+        category_alias -> Nullable<Text>,
+        parent_id -> Nullable<Int4>,
+        hot_id -> Int4,
     }
 }
 
@@ -75,16 +92,16 @@ table! {
     }
 }
 
-joinable!(article -> user (user_id));
-joinable!(article_category -> category (category_id));
-joinable!(article_label -> label (article_id));
+joinable!(article_label -> label (label_id));
 
 allow_tables_to_appear_in_same_query!(
     article,
     article_category,
     article_label,
+    article_like,
     category,
     comment,
+    hot_category,
     label,
     user,
 );
