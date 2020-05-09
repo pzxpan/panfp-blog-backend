@@ -1,7 +1,7 @@
 [package]
-name = "actix-todo"
+name = "panfp-blog"
 version = "0.1.0"
-authors = ["Julio Daniel Reyes <nemesiscodex@gmail.com>"]
+authors = ["panzhenxing@hotmail"]
 edition = "2018"
 
 [features]
