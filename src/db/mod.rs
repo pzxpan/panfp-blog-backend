@@ -415,8 +415,8 @@ pub async fn del_aritcle_comment(client: &Client, user_id: i32, article_id: i32,
 
 pub async fn register(client: &Client, user: &web::Json<NewUser>) -> Result<i32, AppError> {
     let statement = client
-        .prepare("insert into public.\"user\" (password, email, nick_name, profession, level, avatar) \
-                         values ($1,$2,$3,$4,$5,$6) returning user_id")
+        .prepare("insert into public.\"user\" (password, email, nick_name, profession, level, avatar,login_session) \
+                         values ($1,$2,$3,$4,$5,$6,'') returning user_id")
         .await?;
     client
         .query(&statement, &[&user.password, &user.email, &user.nick_name, &user.profession, &user.level, &user.avatar])
