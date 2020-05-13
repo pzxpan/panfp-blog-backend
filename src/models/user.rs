@@ -14,7 +14,7 @@ pub struct User {
     pub level: Option<i32>,
     pub avatar: Option<String>,
     pub login_session: String,
-    pub expire: Option<SystemTime>
+    pub expire: Option<SystemTime>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,21 +35,30 @@ pub struct UserDisplayInfo {
     pub profession: Option<String>,
     pub level: Option<i32>,
     pub avatar: Option<String>,
-    pub token: String
+    pub token: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct UserDetailInfo {
     pub email: String,
-    pub nick_name: Option<String>,
+    pub user_id: Option<i32>,
+    pub nick_name: Option <String>,
     pub profession: Option<String>,
     pub level: Option<i32>,
     pub avatar: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ChangePassword {
+    pub user_id: i32,
+    pub password: String,
+    pub new_password: String
+}
+
 impl UserDetailInfo {
-    pub fn new(user: User) -> UserDetailInfo{
+    pub fn new(user: User) -> UserDetailInfo {
         UserDetailInfo {
+            user_id: Some(user.user_id),
             email: user.email,
             nick_name: user.nick_name,
             profession: user.profession,

@@ -104,7 +104,7 @@ impl<S, B> Service for AuthenticationMiddleware<S>
                 };
 
                 //如果鉴权失败,会直接返回Error数据给客户端
-                handlers::verify_token(use_token, app_state).await?;
+                handlers::user_handler::verify_token(use_token, app_state).await?;
 
                 //如果鉴权成功,继续poll
                 let res = fut.await?;

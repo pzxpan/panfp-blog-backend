@@ -6,7 +6,8 @@ use slog_envlogger;
 use slog_term;
 use actix_web::web::{ServiceConfig,post,route,resource,scope};
 
-use crate::handlers::*;
+use crate::handlers::user_handler::*;
+use crate::handlers::article_handler::*;
 
 #[derive(Deserialize)]
 pub struct ServerConfig {
@@ -73,6 +74,12 @@ impl Config {
                     resource("/user_articles")
                         .route(post().to(user_articles)))
                 .service(
+                    resource("/get_user_article_detail")
+                        .route(post().to(get_user_article_detail)))
+                .service(
+                    resource("/update_article")
+                        .route(post().to(update_article)))
+                .service(
                     resource("/article_detail")
                         .route(post().to(article_detail)))
                 .service(
@@ -115,6 +122,12 @@ impl Config {
                 .service(
                     resource("/login")
                         .route(post().to(user_login)))
+                .service(
+                    resource("/update_user_detail")
+                        .route(post().to(update_user_detail)))
+                .service(
+                    resource("/change_password")
+                        .route(post().to(change_password)))
                 .service(
                     resource("/logout")
                         .route(post().to(logout)))

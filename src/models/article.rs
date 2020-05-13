@@ -32,14 +32,32 @@ pub struct ArticleDetail {
     pub user_id: Option<i32>,
     pub view_count: Option<i32>,
     pub title: Option<String>,
+    pub intro: Option<String>,
     pub comment_count: Option<i32>,
     pub like_count: Option<i32>,
     pub date: Option<SystemTime>,
     pub content_html: Option<String>,
+    // pub category_id: Option<i32>
+}
+
+#[derive(Debug, Serialize, Deserialize, PostgresMapper)]
+#[pg_mapper(table = "article")]
+pub struct UserArticleDetail {
+    pub article_id: Option<i32>,
+    pub user_id: Option<i32>,
+    pub view_count: Option<i32>,
+    pub title: Option<String>,
+    pub intro: Option<String>,
+    pub comment_count: Option<i32>,
+    pub like_count: Option<i32>,
+    pub date: Option<SystemTime>,
+    pub content_html: Option<String>,
+    pub category_id: Option<i32>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewArticle {
+    pub article_id: Option<i32>,
     pub user_id: i32,
     pub title: String,
     pub intro: String,

@@ -1,6 +1,7 @@
-use crate::models::{user::{User, NewUser},
+use crate::models::{user::{User, NewUser, ChangePassword},
                     article::Article,
                     article::ArticleDetail,
+                    article::UserArticleDetail,
                     article::Id,
                     label::Label,
                     comment::{Comment, NewComment, DisplayCommentInfo},
@@ -15,6 +16,7 @@ use tokio_pg_mapper::FromTokioPostgresRow;
 use actix_web::web;
 use uuid::Uuid;
 use crate::models::article::NewArticle;
+use crate::models::user::{UserDetailInfo, UserDisplayInfo};
 
 pub async fn get_articles(client: &Client, article_type: i32) -> Result<Vec<Article>, AppError> {
     let single_category = "select article_id,user_id,view_count,title,comment_count,like_count,date,intro from public.\"article\" WHERE EXISTS ( SELECT * FROM public.\"article_category\" WHERE public.\"article\".article_id = public.\"article_category\".article_id
@@ -125,6 +127,10 @@ where article_id = $1")
 }
 
 pub async fn article_labels(client: &Client, article_id: i32) -> Result<Vec<Label>, AppError> {
+    // SELECT article_id,
+    // ARRAY(SELECT unnest(array_agg(label_id))) AS lables
+    // FROM  public.article_label
+    // GROUP BY  article_id;
     let statement = client
         .prepare("select *  from public.\"label\" WHERE EXISTS ( SELECT * FROM public.\"article_label\" WHERE public.\"label\".label_id = public.\"article_label\".label_id
 AND public.\"article_label\".article_id = $1)")
@@ -310,6 +316,51 @@ pub async fn add_aritcle_comment(client: &Client, comment: web::Json<NewComment>
     }
 }
 
+pub async fn update_article(client: &Client, article: &web::Json<NewArticle>) -> Result<i32, AppError> {
+    if let article_id = Some(article.article_id) {
+        let query_str = format!("select update_article_detail({},{},'{}','{}','{}',{},array{:?})",
+                                article.article_id.unwrap(), article.user_id, article.title, article.intro, article.content_html, article.category_id, article.labels);
+        let statement = client
+            .prepare(query_str.as_ref())
+            .await?;
+        client
+            .query(&statement, &[])
+            .await?
+            .iter()
+            .map(|row| row.get("update_article_detail"))
+            .collect::<Vec<i32>>()
+            .pop()
+            .ok_or(AppError {
+                message: "修改文章失败".to_string(),
+                err_code: DbNotFoundErr,
+            })
+    } else {
+        Err(AppError {
+            message: "缺少文章Id失败".to_string(),
+            err_code: DbNotFoundErr,
+        })
+    }
+}
+
+pub async fn get_user_article(client: &Client, id: &web::Json<Id>) -> Result<UserArticleDetail, AppError> {
+    let statement = client
+        .prepare("select article_id,user_id,view_count,title,comment_count,intro,like_count,date,content_html, category_id from public.\"article\" left join article_category using(article_id) \
+        where article_id = $1 and user_id = $2")
+        .await?;
+
+    client
+        .query(&statement, &[&id.article_id, &id.user_id])
+        .await?
+        .iter()
+        .map(|row| { UserArticleDetail::from_row_ref(row).unwrap() })
+        .collect::<Vec<UserArticleDetail>>()
+        .pop()
+        .ok_or(AppError {
+            message: "找不到相应的文章".to_string(),
+            err_code: DbNotFoundErr,
+        })
+}
+
 pub async fn add_aritcle(client: &Client, article: &web::Json<NewArticle>) -> Result<i32, AppError> {
     let query_str = format!("select insert_article_detail({},'{}','{}','{}',{},array{:?})",
     article.user_id,article.title,article.intro,article.content_html,article.category_id,article.labels);
@@ -415,8 +466,8 @@ pub async fn del_aritcle_comment(client: &Client, user_id: i32, article_id: i32,
 
 pub async fn register(client: &Client, user: &web::Json<NewUser>) -> Result<i32, AppError> {
     let statement = client
-        .prepare("insert into public.\"user\" (password, email, nick_name, profession, level, avatar,login_session) \
-                         values ($1,$2,$3,$4,$5,$6,'') returning user_id")
+        .prepare("insert into public.\"user\" (password, email, nick_name, profession, avatar,login_session,level) \
+                         values ($1,$2,$3,$4,$5,'',1) returning user_id")
         .await?;
     client
         .query(&statement, &[&user.password, &user.email, &user.nick_name, &user.profession, &user.level, &user.avatar])
@@ -469,6 +520,46 @@ pub async fn detail_user(client: &Client, user_id: i32) -> Result<User, AppError
         .pop()
         .ok_or(AppError {
             message: "无相关用户信息".to_string(),
+            err_code: AuthErr,
+        })
+}
+
+pub async fn update_detail_user(client: &Client, user: &web::Json<UserDetailInfo>) -> Result<i32, AppError> {
+    let statement = client
+        .prepare("update  public.\"user\" set nick_name=$1,profession=$2, avatar=$3 where user_id= $4 returning  user_id")
+        .await?;
+    client
+        .query(&statement, &[&user.nick_name.as_ref(), &user.profession.as_ref(), &user.avatar.as_ref(), &user.user_id.as_ref()])
+        .await?
+        .iter()
+        .map(|row| {
+            let id: i32 = row.get("user_id");
+            id
+        })
+        .collect::<Vec<i32>>()
+        .pop()
+        .ok_or(AppError {
+            message: "更新用户信息失败".to_string(),
+            err_code: AuthErr,
+        })
+}
+
+pub async fn change_password(client: &Client, user: &web::Json<ChangePassword>) -> Result<i32, AppError> {
+    let statement = client
+        .prepare("update  public.\"user\" set password=$1  where user_id= $2 and password=$3 returning user_id")
+        .await?;
+    client
+        .query(&statement, &[&user.new_password, &user.user_id, &user.password])
+        .await?
+        .iter()
+        .map(|row| {
+            let id: i32 = row.get("user_id");
+            id
+        })
+        .collect::<Vec<i32>>()
+        .pop()
+        .ok_or(AppError {
+            message: "更改密码失败".to_string(),
             err_code: AuthErr,
         })
 }
