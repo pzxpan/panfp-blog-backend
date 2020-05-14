@@ -80,7 +80,7 @@ pub async fn get_user_articles(client: &Client, user_id: i32) -> Result<Vec<Arti
 
 pub async fn article_detail(client: &Client, article_id: i32) -> Result<ArticleDetail, AppError> {
     let statement = client
-        .prepare("select article_id,user_id,view_count,title,comment_count,like_count,date,content_html from public.\"article\" \
+        .prepare("select article_id,user_id,view_count,title,comment_count,like_count,date,content_html,intro from public.\"article\" \
         where article_id = $1")
         .await?;
 
