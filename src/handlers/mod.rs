@@ -1,5 +1,6 @@
 pub mod article_handler;
 pub mod user_handler;
+pub mod file_handler;
 use crate::models::{user::{User, NewUser, UserDetailInfo},
                     article::Article,
                     article::Id,

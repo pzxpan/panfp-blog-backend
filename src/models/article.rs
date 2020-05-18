@@ -23,6 +23,7 @@ pub struct Id {
     pub user_id: Option<i32>,
     pub comment_id: Option<i32>,
     pub category_id: Option<i32>,
+    pub image_id: Option<i32>
 }
 
 #[derive(Debug, Serialize, Deserialize, PostgresMapper)]
@@ -65,3 +66,4 @@ pub struct NewArticle {
     pub content_html: String,
     pub labels: Vec<i32>,
 }
+

@@ -8,3 +8,4 @@ pub mod app_state;
 pub mod result_response;
 pub mod errors;
 pub mod category;
+pub mod image;

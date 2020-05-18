@@ -8,6 +8,7 @@ use actix_web::web::{ServiceConfig,post,route,resource,scope};
 
 use crate::handlers::user_handler::*;
 use crate::handlers::article_handler::*;
+use crate::handlers::file_handler::*;
 
 #[derive(Deserialize)]
 pub struct ServerConfig {
@@ -113,6 +114,15 @@ impl Config {
                 .service(
                     resource("/add_article")
                         .route(post().to(add_article)))
+                .service(
+                    resource("/upload_file")
+                        .route(post().to(upload_file)))
+                .service(
+                    resource("/delete_img")
+                        .route(post().to(delete_img)))
+                .service(
+                    resource("/get_user_img")
+                                .route(post().to(get_user_img)))
                 .service(
                     resource("/del_article_comment")
                         .route(post().to(delete_article_comment)))

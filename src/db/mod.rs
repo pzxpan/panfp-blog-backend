@@ -16,6 +16,7 @@ use tokio_pg_mapper::FromTokioPostgresRow;
 use actix_web::web;
 use uuid::Uuid;
 use crate::models::article::NewArticle;
+use crate::models::image::Image;
 use crate::models::user::{UserDetailInfo, UserDisplayInfo};
 
 pub async fn get_articles(client: &Client, article_type: i32) -> Result<Vec<Article>, AppError> {
@@ -237,6 +238,63 @@ pub async fn add_like(client: &Client, user_id: i32, article_id: i32) -> Result<
     }
 }
 
+pub async fn add_image(client: &Client, user_id: i32, path: String, source_name: String) -> Result<Image, AppError> {
+    let query_str = format!("insert into public.\"image\" (path, source_name,user_id) VALUES ('{}','{}',{}) returning id,user_id,source_name,path,create_time",
+                            &path, &source_name, &user_id);
+    let statement = client
+        .prepare(query_str.as_ref())
+        .await?;
+
+    client
+        .query(&statement, &[])
+        .await?
+        .iter()
+        .map(|row| {
+            Image::from_row_ref(row).unwrap()
+        })
+        .collect::<Vec<Image>>()
+        .pop()
+        .ok_or(AppError {
+            message: "添加图片失败".to_string(),
+            err_code: DbNotFoundErr,
+        })
+}
+
+pub async fn delete_image(client: &Client, user_id: i32, image_id: i32) -> Result<i32, AppError> {
+    let statement = client
+        .prepare("delete from public.\"image\"  where user_id=$1 and id = $2 returning id")
+        .await?;
+    client
+        .query(&statement, &[&user_id, &image_id])
+        .await?
+        .iter()
+        .map(|row| {
+            let id: i32 = row.get("id");
+            id
+        })
+        .collect::<Vec<i32>>()
+        .pop()
+        .ok_or(AppError {
+            message: "删除图片失败".to_string(),
+            err_code: DbNotFoundErr,
+        })
+}
+
+pub async fn get_user_image(client: &Client, user_id:i32) -> Result<Vec<Image>, AppError> {
+    let statement = client
+        .prepare("select *  from public.\"image\"  where user_id=$1")
+        .await?;
+    let result =  client
+        .query(&statement, &[&user_id])
+        .await?
+        .iter()
+        .map(|row| {
+            Image::from_row_ref(row).unwrap()
+        })
+        .collect::<Vec<Image>>();
+    Ok(result)
+}
+
 pub async fn cancel_like(client: &Client, user_id: i32, article_id: i32) -> Result<i32, AppError> {
     let del = client
         .prepare("delete from public.article_like where user_id=$1 and article_id=$2 returning id")
@@ -363,7 +421,7 @@ pub async fn get_user_article(client: &Client, id: &web::Json<Id>) -> Result<Use
 
 pub async fn add_aritcle(client: &Client, article: &web::Json<NewArticle>) -> Result<i32, AppError> {
     let query_str = format!("select insert_article_detail({},'{}','{}','{}',{},array{:?})",
-    article.user_id,article.title,article.intro,article.content_html,article.category_id,article.labels);
+                            article.user_id, article.title, article.intro, article.content_html, article.category_id, article.labels);
     // let statement = client
     //     .prepare("select insert_article_detail(13,'ffffggggg','aaaabbbbb','<p>dddddadf</p>',11,array[1,2,3])")
     //     .await?;
@@ -382,6 +440,7 @@ pub async fn add_aritcle(client: &Client, article: &web::Json<NewArticle>) -> Re
             err_code: DbNotFoundErr,
         })
 }
+
 // pub async fn add_aritcle(client: &Client, article: &web::Json<NewArticle>) -> Result<i32, AppError> {
 //     let statement = client
 //         .prepare("insert into public.\"article\" (user_id, title, intro,content_html) \
@@ -414,7 +473,7 @@ pub async fn add_aritcle(client: &Client, article: &web::Json<NewArticle>) -> Re
 // end loop;
 //select insert_article_detail(13,'ggggg','bbbbb','<p>dadf</p>',11,array[1,2,3])
 //select insert_article_detail(13,'ggggg','bbbbb','<p>dadf</p>',11,array[1,2,3])
-pub async fn add_article_label(client: &Client, article_id: i32, label_ids: Vec<i32>)-> Result<i32, AppError> {
+pub async fn add_article_label(client: &Client, article_id: i32, label_ids: Vec<i32>) -> Result<i32, AppError> {
     //批量插入
     let mut query_str = "INSERT INTO public.article_label (article_id, label_id) VALUES ".to_string();
     query_str = label_ids.iter().fold(query_str, |query_str, x| { query_str + format!("( {}, {}),", article_id, x).as_ref() });
@@ -422,7 +481,7 @@ pub async fn add_article_label(client: &Client, article_id: i32, label_ids: Vec<
     let statement = client
         .prepare(&query_str)
         .await?;
-    client.query(&statement,&[])
+    client.query(&statement, &[])
         .await?
         .iter()
         .map(|row| row.get("id"))
