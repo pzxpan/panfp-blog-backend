@@ -1,5 +1,10 @@
 # panfp-blog-backend 
-panfp博客浏览器后端,用rust的actix-web框架编写；
+panfp博客浏览器后端,用rust的actix-web框架编写,数据库采用postgres；
+
+## 已完成
+1.JWT token认证，以client的异步调用方式;
+2.文件上传
+3.blog数据的管理
 
 ## Requirements
 - Rust
