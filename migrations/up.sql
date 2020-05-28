@@ -186,9 +186,105 @@ TABLESPACE pg_default;
 
 ALTER TABLE public."user"
     OWNER to test;
+    
+
+-- Table: public.image
+
+-- DROP TABLE public.image;
+
+CREATE TABLE public.image
+(
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 1000000000 CACHE 1 ),
+    path text COLLATE pg_catalog."default",
+    user_id integer,
+    source_name text COLLATE pg_catalog."default",
+    create_time timestamp with time zone DEFAULT now(),
+    CONSTRAINT image_pkey PRIMARY KEY (id),
+    CONSTRAINT user_id FOREIGN KEY (user_id)
+        REFERENCES public."user" (user_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE public.image
+    OWNER to test;
 
 
+-- FUNCTION: public.insert_article_detail(integer, text, text, text, integer, integer[])
 
+-- DROP FUNCTION public.insert_article_detail(integer, text, text, text, integer, integer[]);
 
+CREATE OR REPLACE FUNCTION public.insert_article_detail(
+	u_id integer,
+	a_title text,
+	a_intro text,
+	a_content_html text,
+	a_category integer,
+	a_labels integer[])
+    RETURNS integer
+    LANGUAGE 'plpgsql'
 
+    COST 100
+    VOLATILE
 
+AS $BODY$DECLARE
+a_id integer;
+i integer;
+a_label_id integer;
+lens integer;
+BEGIN
+insert into public.article (user_id, title, intro,content_html) values (u_id,a_title,a_intro,a_content_html);
+a_id = (select MAX(article_id) from public.article);
+lens = array_length(a_labels,1);
+for i in 1..lens loop
+   a_label_id = a_labels[i];
+   INSERT INTO public.article_label (article_id, label_id) VALUES (a_id,a_label_id);
+end loop;
+Insert into public.article_category (article_id,category_id) VALUES(a_id,a_category);
+RETURN a_id;
+END;$BODY$;
+
+ALTER FUNCTION public.insert_article_detail(integer, text, text, text, integer, integer[])
+    OWNER TO test;
+
+-- FUNCTION: public.update_article_detail(integer, integer, text, text, text, integer, integer[])
+
+-- DROP FUNCTION public.update_article_detail(integer, integer, text, text, text, integer, integer[]);
+
+CREATE OR REPLACE FUNCTION public.update_article_detail(
+	a_id integer,
+	u_id integer,
+	a_title text,
+	a_intro text,
+	a_content_html text,
+	a_category integer,
+	a_labels integer[])
+    RETURNS integer
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+
+AS $BODY$DECLARE
+i integer;
+a_label_id integer;
+lens integer;
+BEGIN
+update public.article set title = a_title, intro = a_intro,content_html=a_content_html  where article_id = a_id and user_id = u_id;
+delete from public.article_label where article_id = a_id;
+lens = array_length(a_labels,1);
+for i in 1..lens loop
+   a_label_id = a_labels[i];
+   INSERT INTO public.article_label (article_id, label_id) VALUES (a_id,a_label_id);
+end loop;
+update public.article_category set category_id=a_category where article_id = a_id;
+RETURN a_id;
+END;$BODY$;
+
+ALTER FUNCTION public.update_article_detail(integer, integer, text, text, text, integer, integer[])
+    OWNER TO test;
+
+COMMENT ON FUNCTION public.update_article_detail(integer, integer, text, text, text, integer, integer[])
+    IS '修改文章';
